@@ -1,272 +1,194 @@
-::: {align="center"}
-# ⚡ Campus Energy Intelligence
+<div align="center">
 
-### A data-driven view of campus electricity consumption.
+# CAMPUS ENERGY INTELLIGENCE
 
-Monitor energy usage, compare buildings, identify demand patterns, and
-investigate unusual readings through an interactive analytics dashboard.
+**Understand campus energy. Find the patterns. Investigate what matters.**
 
-`<br>`{=html}
+<br>
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
-![Plotly](https://img.shields.io/badge/Plotly-Interactive%20Charts-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
-![Data](https://img.shields.io/badge/Dataset-Simulated-16A085?style=for-the-badge)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Plotly](https://img.shields.io/badge/Plotly-Visualizations-3F4F75?style=flat-square&logo=plotly&logoColor=white)](https://plotly.com/python/)
+![Dataset](https://img.shields.io/badge/Dataset-Simulated-168B70?style=flat-square)
+![Status](https://img.shields.io/badge/Project-Academic%20Prototype-526477?style=flat-square)
 
-`<br>`{=html}
+<br>
 
-**Campus Facilities · Energy Performance · Decision Support**
-:::
+*A campus energy monitoring and analytics dashboard built with Python, Streamlit and Plotly.*
 
-------------------------------------------------------------------------
+</div>
 
-## ✦ Overview
+---
 
-Campus Energy Intelligence is an interactive dashboard designed to help
-campus facility teams understand how electricity is consumed across
-different buildings and time periods.
+## Overview
 
-The dashboard brings key indicators, interactive visualizations,
-data-quality checks, and a simulated meter-reading workflow into one
-place.
+Campus Energy Intelligence is an interactive dashboard for exploring electricity consumption across campus buildings. It brings operational indicators, time-based analysis, building comparisons and data-quality information into one interface.
 
-> **Data notice:** This project uses synthetic, simulated readings for
-> demonstration. It is not connected to physical campus electricity
-> meters and must not be interpreted as live operational reporting.
+The project is designed around three practical questions:
 
-## ◈ Dashboard capabilities
+- **Where** is electricity being consumed?
+- **When** does demand rise or fall?
+- **What** should campus facilities staff investigate?
 
-  -----------------------------------------------------------------------
-  Capability                          What it shows
-  ----------------------------------- -----------------------------------
-  **Energy overview**                 Total consumption, average daily
-                                      consumption, peak demand, and
-                                      active buildings
+The dashboard also includes a simulated meter-reading workflow. New records can be added to the dataset, after which the KPIs and visualizations recalculate.
 
-  **Building comparison**             How energy consumption is
-                                      distributed across campus buildings
+> [!IMPORTANT]
+> **This project uses simulated data.** It is an academic demonstration, not a live campus monitoring system. It is not connected to physical meters, a building management system or a utility provider. All readings and findings are illustrative.
 
-  **Time-based analysis**             Daily consumption trends and hourly
-                                      demand behaviour
+## Dashboard at a glance
 
-  **Demand intensity**                A day-by-hour heatmap that retains
-                                      observed readings and identifies
-                                      partial or missing days
+| Indicator | What it communicates |
+|:--|:--|
+| **Total energy** | Energy consumed in the selected reporting window, in kWh |
+| **Daily average** | Mean daily consumption across complete days only |
+| **Peak demand** | Highest recorded demand in the selected window, in kW |
+| **Active buildings** | Number of selected buildings represented in the filtered data |
 
-  **Consumption hierarchy**           A treemap showing the relative
-                                      contribution of each building
+The dashboard supports date-range and building filters. KPI cards, charts and findings respond to the selected view.
 
-  **Peak demand**                     A gauge highlighting the highest
-                                      recorded demand
+## Visual analysis
 
-  **Relationship analysis**           A scatter plot comparing energy
-                                      consumed with recorded demand
+Each visualization is selected for a specific analytical purpose.
 
-  **Operational findings**            A data-supported observation to
-                                      guide further investigation
+| Visualization | Purpose |
+|:--|:--|
+| **Consumption trajectory** | Tracks daily energy consumption and distinguishes complete from incomplete days |
+| **Building energy mix** | Compares each building's share of selected-period consumption |
+| **Demand intensity heatmap** | Shows observed demand by date and hour, with partial and missing days identified |
+| **Consumption treemap** | Shows the relative scale of energy use across buildings |
+| **Peak demand gauge** | Highlights the highest recorded demand |
+| **Energy-demand scatter plot** | Explores the relationship between interval energy and recorded demand |
+| **Typical hourly demand** | Compares hourly demand using complete days only |
+| **Operational findings** | Presents a data-supported observation for further investigation |
 
-  **Data update demonstration**       Add a simulated meter reading and
-                                      refresh the dashboard calculations
-  -----------------------------------------------------------------------
+## Data integrity
 
-## ◇ Key performance indicators
+A dashboard should make the quality and limitations of its data visible, not hide them.
 
-The dashboard presents four headline indicators:
+### Completeness rule
 
-1.  **Total energy consumption (kWh)**\
-    Sum of the energy readings in the selected reporting window.
+A day is considered complete when **every selected building has readings in 24 distinct hourly slots**.
 
-2.  **Average daily consumption (kWh)**\
-    Mean daily energy consumption across complete days only.
+- Multiple readings within the same hour count as one slot for completeness.
+- Partial-day readings remain visible in the consumption trend and heatmap.
+- Days with no observations are identified separately from partial days.
+- Incomplete days are excluded from the daily average and typical hourly demand profile.
+- Data coverage is calculated from distinct hourly slots, capped at 24 per selected building per day.
 
-3.  **Peak recorded demand (kW)**\
-    Highest demand value recorded in the selected reporting window.
+### Data validation
 
-4.  **Active buildings**\
-    Number of selected buildings represented in the filtered data.
+The application performs basic checks when loading the CSV dataset:
 
-### Data completeness
+- Timestamp parsing and numeric conversion.
+- Removal of rows with missing required values.
+- Duplicate handling for building-and-timestamp records.
+- Rejection of negative energy and demand values.
+- Retention of record status to distinguish ordinary simulated readings from manually added demonstration records.
 
-A day is considered complete when every selected building has readings
-in **24 distinct hourly slots**.
+### Anomaly screening
 
--   Repeated readings within the same hour count as one hourly slot for
-    completeness.
--   Partial days remain visible in the trend and heatmap.
--   Incomplete days are excluded from the daily average and recurring
-    hourly demand profile.
--   Data coverage is calculated from distinct hourly slots, capped at 24
-    per selected building per day.
+Unusual readings are screened using a building-and-hour median/MAD baseline with a minimum lift threshold.
 
-## ▦ Visualizations
+A flagged reading is a prompt for investigation. It is not proof of equipment failure, energy waste or a safety issue.
 
-The dashboard uses different chart types for different analytical tasks.
+## Technology
 
-  -----------------------------------------------------------------------
-  Visualization                       Purpose
-  ----------------------------------- -----------------------------------
-  Area chart                          Track daily energy consumption over
-                                      time
+| Technology | Role |
+|:--|:--|
+| [Python](https://www.python.org/) | Application logic and calculations |
+| [Streamlit](https://streamlit.io/) | Interactive dashboard interface |
+| [Pandas](https://pandas.pydata.org/) | Data loading, filtering, grouping and validation |
+| [NumPy](https://numpy.org/) | Numerical and statistical operations |
+| [Plotly](https://plotly.com/python/) | Interactive data visualizations |
+| CSV | Portable demonstration data storage |
 
-  Donut chart                         Compare each building's share of
-                                      total consumption
+## Run locally
 
-  Heatmap                             Explore demand intensity by date
-                                      and hour
+### Requirements
 
-  Treemap                             Understand the relative scale of
-                                      building consumption
+- Python 3.10 or later
+- pip
+- The project files and CSV dataset
 
-  Gauge                               Highlight the highest recorded
-                                      demand
+### Project structure
 
-  Scatter plot                        Explore the relationship between
-                                      energy and demand
-
-  Hourly profile                      Compare typical demand by hour
-                                      using complete days only
-  -----------------------------------------------------------------------
-
-## ⚙️ Technology stack
-
--   **Python** --- data processing and application logic
--   **Streamlit** --- interactive dashboard interface
--   **Pandas** --- dataset loading, filtering, aggregation, and
-    validation
--   **NumPy** --- numerical calculations and statistical operations
--   **Plotly** --- interactive charts and visual analytics
--   **CSV** --- simple, inspectable dataset storage
-
-## 🚀 Run locally
-
-### 1. Prerequisites
-
-Install Python 3.10 or later. Confirm that Python and pip are available:
-
-``` bash
-python --version
-pip --version
-```
-
-### 2. Get the project
-
-Clone the repository or download and extract the project folder.
-
-Make sure the project retains this structure:
-
-``` text
+```text
 campus_energy_dashboard_v2/
 │
 ├── app.py
 ├── requirements.txt
+├── README.md
 │
 └── data/
     └── energy_readings.csv
 ```
 
-### 3. Install dependencies
+### Installation
 
-Open a terminal in the project folder and run:
+**1. Open a terminal in the project directory.**
 
-``` bash
+**2. Install the dependencies.**
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 4. Launch the dashboard
+**3. Launch the dashboard.**
 
-``` bash
+```bash
 streamlit run app.py
 ```
 
-Streamlit will provide a local URL, usually:
+**4. Open the local address printed by Streamlit.**
 
-``` text
+```text
 http://localhost:8501
 ```
 
-Open that address in your browser.
-
-## ↻ Demonstrate a data update
+## Demonstrate a data update
 
 The dashboard includes a simulated meter-reading form.
 
-1.  Open **Add a new simulated meter reading**.
-2.  Select a campus building.
-3.  Enter energy consumed in kWh and demand in kW.
-4.  Choose the reading date and time.
-5.  Select **Save reading and refresh dashboard**.
+1. Expand **Add a new simulated meter reading**.
+2. Select a campus building.
+3. Enter energy consumed in kWh and demand in kW.
+4. Choose the reading date and time.
+5. Select **Save reading and refresh dashboard**.
 
-The new record is written to `data/energy_readings.csv`. The application
-reloads the dataset and recalculates the dashboard.
+The new record is written to `data/energy_readings.csv`. The application reloads the dataset and recalculates the dashboard.
 
-**Important:** The update mechanism modifies the local CSV file. It is a
-demonstration workflow, not a live meter integration or a multi-user
-production data pipeline.
+> [!NOTE]
+> The update workflow writes to a local CSV file. It demonstrates a data update; it is not a live meter feed, cloud database or concurrent multi-user ingestion service.
 
-## ◉ Data structure
+## Understanding the findings
 
-The CSV dataset uses the following fields:
+The dashboard identifies the building with the largest share of energy consumption in the current selection. This can help facilities staff decide where to review operating schedules and major electrical loads.
 
-  -----------------------------------------------------------------------
-  Field                               Description
-  ----------------------------------- -----------------------------------
-  `timestamp`                         Date and time of the reading
+A higher consumption share does not automatically mean a building is inefficient. Building size, operating hours and equipment mix all affect energy demand. Context is required before recommending corrective action.
 
-  `building`                          Campus building associated with the
-                                      reading
+## Limitations
 
-  `energy_kwh`                        Energy consumed, in kilowatt-hours
+- All readings are synthetic and do not represent measured campus consumption.
+- The dashboard is not connected to smart meters, IoT devices, building management systems or utility APIs.
+- Hourly completeness assumes 24 expected reading slots per building per day.
+- Local CSV storage is appropriate for a classroom demonstration, not concurrent production ingestion.
+- Statistical anomaly flags require human review and are not confirmed faults.
+- Findings depend on the selected reporting period, selected buildings and quality of the supplied records.
 
-  `demand_kw`                         Recorded demand, in kilowatts
+## Project objective
 
-  `data_status`                       Indicates whether a record is
-                                      simulated or manually added
-  -----------------------------------------------------------------------
+This project demonstrates how a campus-related activity can be monitored through key performance indicators, interactive visualizations, filters and a data-update workflow.
 
-The application performs basic data checks, including timestamp parsing,
-numeric conversion, missing-value removal, duplicate handling, and
-non-negative value checks.
+It serves as an educational prototype for exploring energy consumption and supporting evidence-based campus operations.
 
-## ◇ Example analytical finding
+---
 
-The dashboard identifies the building with the highest share of energy
-consumption in the selected reporting window.
+<div align="center">
 
-This finding can help facilities staff decide where to investigate
-operating schedules and major electrical loads. A higher consumption
-share is a reason to investigate, not proof of energy waste.
-
-## ⚠️ Limitations
-
--   All readings are simulated and do not represent actual campus
-    electricity consumption.
--   The dashboard is not connected to smart meters, building management
-    systems, or utility APIs.
--   The local CSV file is suitable for a classroom demonstration, not
-    concurrent production use.
--   Completeness assumes an hourly reading schedule for each selected
-    building.
--   Statistical anomaly flags are screening indicators, not confirmed
-    equipment faults.
--   Findings depend on the selected date range, buildings, and quality
-    of the supplied data.
-
-## 🎓 Project objective
-
-This project demonstrates how a campus-related activity can be monitored
-through key performance indicators, interactive visualizations, filters,
-and a data-update workflow.
-
-It is intended as an educational prototype for exploring energy
-consumption and supporting evidence-based campus operations.
-
-------------------------------------------------------------------------
-
-::: {align="center"}
 **CAMPUS ENERGY INTELLIGENCE**
 
-*Measure · Compare · Understand · Investigate*
+*Measure the load. Understand the pattern.*
 
-`<sub>`{=html}Built as an academic dashboard project using simulated
-campus energy data.`</sub>`{=html}
-:::
+<sub>Academic prototype · Interactive analytics · Simulated campus energy dataset</sub>
+
+</div>
