@@ -1,10 +1,19 @@
 <div align="center">
 
-<a href="https://github.com/">
+<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit">
   <img src="https://capsule-render.vercel.app/api?type=venom&height=260&color=0:07111F,45:10334A,100:126B78&text=CAMPUS%20ENERGY%20INTELLIGENCE&fontColor=EAF7FF&fontSize=38&fontAlignY=43&desc=ENERGY%20MONITORING%20%2F%20CAMPUS%20OPERATIONS%20%2F%20ANALYTICS&descAlignY=63&descSize=13&stroke=48D8E8&strokeWidth=1" width="100%" alt="Campus Energy Intelligence banner">
 </a>
 
 <br>
+
+<a href="https://campus-energy-intelligence-app.streamlit.app">
+  <img src="https://img.shields.io/badge/OPEN-LIVE%20DASHBOARD-35CBEA?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=101D2B" alt="Open live dashboard">
+</a>
+<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit">
+  <img src="https://img.shields.io/badge/VIEW-SOURCE%20CODE-9B8CFF?style=for-the-badge&logo=github&logoColor=white&labelColor=101D2B" alt="View source code">
+</a>
+
+<br><br>
 
 <a href="https://www.python.org/"><img src="https://img.shields.io/badge/PYTHON-3.10%2B-9CCBFF?style=for-the-badge&logo=python&logoColor=white&labelColor=101D2B" alt="Python"></a>
 <a href="https://streamlit.io/"><img src="https://img.shields.io/badge/STREAMLIT-APP-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=101D2B" alt="Streamlit"></a>
@@ -19,7 +28,7 @@
 
 **An interactive campus energy analytics dashboard.**
 
-[Overview](#overview) · [Dashboard intelligence](#dashboard-intelligence) · [Data logic](#data-logic) · [Run locally](#run-locally) · [Limitations](#limitations)
+[Live dashboard](https://campus-energy-intelligence-app.streamlit.app) · [Source code](https://github.com/Dixith-ai/campus-energy-intelligence-streamlit) · [Overview](#overview) · [Dashboard intelligence](#dashboard-intelligence) · [Data logic](#data-logic) · [Run locally](#run-locally) · [Limitations](#limitations)
 
 </div>
 
@@ -45,7 +54,7 @@ The idea is simple: move beyond a table of meter readings and make the underlyin
 <sub>Building-level comparison</sub>
 </td>
 <td width="33%" align="center">
-<h2>1,682</h2>
+<h2>1,683</h2>
 <strong>Sample readings</strong><br>
 <sub>Demonstration dataset</sub>
 </td>
@@ -230,7 +239,15 @@ A flagged reading is a prompt for investigation. It is not proof of equipment fa
 | **Plotly** | Interactive visualizations |
 | **CSV** | Portable demonstration data storage |
 
-## `07` / Run locally
+## `07` / Live deployment
+
+The dashboard is published through Streamlit Community Cloud.
+
+**Open the application:** [campus-energy-intelligence-app.streamlit.app](https://campus-energy-intelligence-app.streamlit.app)
+
+The deployed application runs in a cloud environment. Its filesystem is separate from the copy on a developer's laptop, so editing the local CSV does not automatically update the hosted dashboard. The in-app simulated reading workflow demonstrates the application's data-update logic; persistence on the hosted instance should not be treated as a production database.
+
+## `08` / Run locally
 
 ### Requirements
 
@@ -241,11 +258,13 @@ A flagged reading is a prompt for investigation. It is not proof of equipment fa
 ### Project structure
 
 ```text
-campus_energy_dashboard_v2/
+campus-energy-intelligence-streamlit/
 │
 ├── app.py
 ├── requirements.txt
 ├── README.md
+├── submission_explanation.md
+├── dashboard_preview.png
 │
 └── data/
     └── energy_readings.csv
@@ -267,7 +286,7 @@ Open the local address printed by Streamlit, usually:
 http://localhost:8501
 ```
 
-## `08` / Live demonstration — simulated ingestion
+## `09` / Live demonstration — simulated ingestion
 
 The dashboard includes a meter-reading form for demonstrating how new data changes the interface.
 
@@ -280,15 +299,15 @@ The dashboard includes a meter-reading form for demonstrating how new data chang
 The application writes the new record to `data/energy_readings.csv`, reloads the dataset and recalculates the dashboard.
 
 > [!NOTE]
-> The workflow writes to a local CSV file. It demonstrates a data update, not a live meter feed, cloud database or concurrent multi-user ingestion service.
+> The workflow writes to the application's CSV file. It demonstrates a data update, not a live meter feed, cloud database or concurrent multi-user ingestion service. On the hosted deployment, the cloud runtime is separate from your local computer; local CSV edits do not sync to it.
 
-## `09` / Interpreting the findings
+## `10` / Interpreting the findings
 
 The dashboard identifies the building with the largest share of consumption in the current selection. This can help facilities staff decide where to review operating schedules and major electrical loads.
 
 A higher consumption share does not automatically mean a building is inefficient. Building size, operating hours and equipment mix influence demand. Context is required before recommending corrective action.
 
-## `10` / Limitations
+## `11` / Limitations
 
 - All readings are synthetic and do not represent measured campus consumption.
 - No smart meters, IoT devices, building management systems or utility APIs are connected.
