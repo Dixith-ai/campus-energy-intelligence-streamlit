@@ -1,23 +1,23 @@
 <div align="center">
 
-<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit">
+<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit" target="_blank" rel="noopener noreferrer">
   <img src="https://capsule-render.vercel.app/api?type=venom&height=260&color=0:07111F,45:10334A,100:126B78&text=CAMPUS%20ENERGY%20INTELLIGENCE&fontColor=EAF7FF&fontSize=38&fontAlignY=43&desc=ENERGY%20MONITORING%20%2F%20CAMPUS%20OPERATIONS%20%2F%20ANALYTICS&descAlignY=63&descSize=13&stroke=48D8E8&strokeWidth=1" width="100%" alt="Campus Energy Intelligence banner">
 </a>
 
 <br>
 
-<a href="https://campus-energy-intelligence-app.streamlit.app">
+<a href="https://campus-energy-intelligence-app.streamlit.app" target="_blank" rel="noopener noreferrer">
   <img src="https://img.shields.io/badge/OPEN-LIVE%20DASHBOARD-35CBEA?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=101D2B" alt="Open live dashboard">
 </a>
-<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit">
+<a href="https://github.com/Dixith-ai/campus-energy-intelligence-streamlit" target="_blank" rel="noopener noreferrer">
   <img src="https://img.shields.io/badge/VIEW-SOURCE%20CODE-9B8CFF?style=for-the-badge&logo=github&logoColor=white&labelColor=101D2B" alt="View source code">
 </a>
 
 <br><br>
 
-<a href="https://www.python.org/"><img src="https://img.shields.io/badge/PYTHON-3.10%2B-9CCBFF?style=for-the-badge&logo=python&logoColor=white&labelColor=101D2B" alt="Python"></a>
-<a href="https://streamlit.io/"><img src="https://img.shields.io/badge/STREAMLIT-APP-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=101D2B" alt="Streamlit"></a>
-<a href="https://plotly.com/python/"><img src="https://img.shields.io/badge/PLOTLY-VISUALS-9B8CFF?style=for-the-badge&logo=plotly&logoColor=white&labelColor=101D2B" alt="Plotly"></a>
+<a href="https://www.python.org/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/PYTHON-3.10%2B-9CCBFF?style=for-the-badge&logo=python&logoColor=white&labelColor=101D2B" alt="Python"></a>
+<a href="https://streamlit.io/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/STREAMLIT-APP-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=101D2B" alt="Streamlit"></a>
+<a href="https://plotly.com/python/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/PLOTLY-VISUALS-9B8CFF?style=for-the-badge&logo=plotly&logoColor=white&labelColor=101D2B" alt="Plotly"></a>
 <img src="https://img.shields.io/badge/DATA-SIMULATED-4ED6B3?style=for-the-badge&labelColor=101D2B" alt="Simulated data">
 
 <br><br>
