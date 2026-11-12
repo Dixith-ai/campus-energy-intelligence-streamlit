@@ -1,0 +1,500 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from pathlib import Path
+from datetime import datetime
+import time
+
+# ============================================================
+# Campus Energy Consumption | Premium analytics dashboard
+# ============================================================
+st.set_page_config(page_title="Campus Energy Intelligence", page_icon="⚡", layout="wide")
+DATA_PATH = Path(__file__).parent / "data" / "energy_readings.csv"
+BUILDINGS = ["Engineering Block", "Science Block", "Library", "Administration Block", "Hostel Block"]
+
+# ---------- Design system ----------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+:root {--bg:#080d18;--panel:#101a2b;--panel2:#131f33;--line:#24334b;--muted:#91a2bb;--text:#eef4ff;--cyan:#53d8f2;--blue:#5d9dff;--violet:#a78bfa;--pink:#f472b6;--amber:#f6b75e;--green:#51d6a5;}
+html,body,[class*="css"] {font-family:'DM Sans',sans-serif;}
+.stApp {background:radial-gradient(ellipse at 70% -10%,#172b46 0%,#0b1322 36%,#080d18 76%);color:var(--text);}
+.block-container {max-width:1500px;padding-top:1.25rem;padding-bottom:3rem;}
+[data-testid="stSidebar"] {background:#0c1524;border-right:1px solid #1f3048;}
+[data-testid="stSidebar"] * {color:#dce7f7;}
+[data-testid="stSidebar"] h2 {font-family:Manrope,sans-serif;}
+h1,h2,h3 {font-family:'Manrope',sans-serif!important;letter-spacing:-.035em;color:var(--text)!important;}
+h1 {font-size:2.25rem!important;font-weight:800!important;margin-bottom:.15rem!important;}
+h2 {font-size:1.18rem!important;font-weight:700!important;}
+h3 {font-size:1rem!important;font-weight:700!important;}
+p,label {color:#aab9ce;}
+hr {border-color:#23334b!important;}
+[data-testid="stMetric"] {background:linear-gradient(145deg,rgba(23,39,62,.96),rgba(14,25,42,.96));border:1px solid #2b405e;border-radius:15px;padding:15px 17px;min-height:112px;box-shadow:0 10px 26px rgba(0,0,0,.13);}
+[data-testid="stMetricLabel"] {color:#9eafc7!important;font-size:.76rem!important;letter-spacing:.07em;text-transform:uppercase;}
+[data-testid="stMetricValue"] {font-family:Manrope,sans-serif!important;color:#f5f8ff!important;font-size:1.7rem!important;}
+[data-testid="stMetricDelta"] {font-size:.75rem!important;}
+div[data-testid="stPlotlyChart"] {background:linear-gradient(145deg,rgba(18,30,49,.96),rgba(13,23,39,.96));border:1px solid #263952;border-radius:16px;padding:7px 8px 2px;box-shadow:0 12px 28px rgba(0,0,0,.12);}
+div[data-testid="stAlert"] {border-radius:12px;}
+.stButton>button,.stFormSubmitButton>button {border-radius:9px;font-weight:700;}
+div[data-testid="stExpander"] {border:1px solid #293c56;border-radius:12px;background:#101a2b;}
+.eyebrow {font-family:'DM Mono',monospace;color:#65d9ef;font-size:.7rem;letter-spacing:.17em;text-transform:uppercase;}
+.subline {color:#8fa1ba;font-size:.86rem;margin-top:-.2rem;}
+.hero {position:relative;overflow:hidden;background:linear-gradient(110deg,rgba(20,47,72,.96),rgba(25,30,66,.9) 65%,rgba(45,28,70,.86));border:1px solid #35506f;border-radius:20px;padding:23px 26px;margin:12px 0 18px;box-shadow:0 18px 40px rgba(0,0,0,.18);}
+.hero:after {content:"";position:absolute;width:260px;height:260px;right:4%;top:-160px;border:1px solid rgba(83,216,242,.18);border-radius:50%;box-shadow:0 0 0 25px rgba(83,216,242,.025),0 0 0 55px rgba(167,139,250,.025);}
+.hero p {margin:6px 0 0;color:#b4c4d8;}
+.tag {display:inline-block;border:1px solid #286b66;background:rgba(28,100,83,.24);color:#79e8c4;border-radius:99px;padding:6px 10px;font-size:.69rem;font-weight:700;letter-spacing:.06em;}
+.section-kicker {font-family:'DM Mono',monospace;color:#6c86a8;font-size:.67rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;}
+.panel-title {display:flex;align-items:center;gap:8px;}
+.finding {background:linear-gradient(110deg,#132c40,#17243d);border:1px solid #2c4b68;border-left:3px solid #53d8f2;border-radius:14px;padding:16px 18px;}
+.finding strong {color:#f0f6ff;}
+.mini {font-family:'DM Mono',monospace;color:#8498b4;font-size:.73rem;}
+[data-testid="stDataFrame"] {border:1px solid #263952;border-radius:12px;overflow:hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+COLORS = ["#53d8f2", "#8b9cff", "#b18cff", "#f472b6", "#f6b75e"]
+
+def load_data():
+    if not DATA_PATH.exists():
+        raise FileNotFoundError(f"Dataset not found: {DATA_PATH}")
+    d = pd.read_csv(DATA_PATH)
+    required = {"timestamp","building","energy_kwh","demand_kw","data_status"}
+    missing = required - set(d.columns)
+    if missing:
+        raise ValueError("Missing columns: " + ", ".join(sorted(missing)))
+    d["timestamp"] = pd.to_datetime(d["timestamp"], errors="coerce")
+    d["energy_kwh"] = pd.to_numeric(d["energy_kwh"], errors="coerce")
+    d["demand_kw"] = pd.to_numeric(d["demand_kw"], errors="coerce")
+    d = d.dropna(subset=["timestamp","building","energy_kwh","demand_kw"])
+    d = d.drop_duplicates(["timestamp","building"], keep="last")
+    d = d[(d.energy_kwh >= 0) & (d.demand_kw >= 0)]
+    return d.sort_values("timestamp")
+
+def chart_style(fig, height=330, showlegend=False):
+    fig.update_layout(
+        template="plotly_dark", height=height,
+        margin=dict(l=18,r=18,t=28,b=18),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="DM Sans",color="#b9c8dc",size=11),
+        title_font=dict(family="Manrope",size=14,color="#edf4ff"),
+        showlegend=showlegend,
+        legend=dict(bgcolor="rgba(0,0,0,0)",orientation="h",y=1.12),
+        xaxis=dict(gridcolor="#26364d",zerolinecolor="#26364d",linecolor="#26364d"),
+        yaxis=dict(gridcolor="#26364d",zerolinecolor="#26364d",linecolor="#26364d")
+    )
+    return fig
+
+# ---------- Load and validate ----------
+try:
+    data = load_data()
+except Exception as exc:
+    st.error(f"Could not load dataset: {exc}")
+    st.stop()
+
+file_updated = datetime.fromtimestamp(DATA_PATH.stat().st_mtime)
+latest_reading = data.timestamp.max()
+
+# ---------- Sidebar ----------
+with st.sidebar:
+    st.markdown("## ⚡ Energy intelligence")
+    st.markdown('<div class="mini">CAMPUS OPERATIONS / ANALYTICS</div>',unsafe_allow_html=True)
+    st.divider()
+    st.markdown("### Filters")
+    dmin,dmax=data.timestamp.min().date(),data.timestamp.max().date()
+    dates=st.date_input("Reporting window",value=(dmin,dmax),min_value=dmin,max_value=dmax)
+    if isinstance(dates,tuple) and len(dates)==2:
+        start_date,end_date=dates
+    else:
+        start_date=end_date=dates
+    selected=st.multiselect("Buildings",BUILDINGS,default=BUILDINGS)
+    st.divider()
+    st.markdown("### Data source")
+    st.markdown('<span class="tag">● SIMULATED DATA</span>',unsafe_allow_html=True)
+    st.caption(f"{len(data):,} valid readings")
+    st.caption(f"Latest record · {latest_reading:%d %b, %I:%M %p}")
+    st.caption(f"File modified · {file_updated:%d %b, %I:%M %p}")
+    st.divider()
+    st.caption("Synthetic demonstration data. No physical campus meters are connected.")
+
+view=data[(data.timestamp.dt.date>=start_date)&(data.timestamp.dt.date<=end_date)&(data.building.isin(selected))].copy()
+if view.empty:
+    st.warning("No readings match the selected filters.")
+    st.stop()
+
+# ---------- Header ----------
+st.markdown('<div class="eyebrow">CAMPUS FACILITIES / ENERGY PERFORMANCE</div>',unsafe_allow_html=True)
+st.title("Campus Energy Consumption")
+st.markdown("""
+<div class="hero">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;position:relative;z-index:1">
+  <div><div style="font-family:Manrope;font-weight:800;font-size:1.22rem;color:#f3f7ff">Energy operations at a glance</div>
+  <p>Understand where electricity is used, when demand rises and which readings deserve attention.</p></div>
+  <span class="tag">● SIMULATED ENVIRONMENT</span>
+ </div>
+</div>
+""",unsafe_allow_html=True)
+
+# ---------- KPIs ----------
+period_days=max(1,(end_date-start_date).days+1)
+prev_start=pd.Timestamp(start_date)-pd.Timedelta(days=period_days)
+prev_end=pd.Timestamp(start_date)-pd.Timedelta(seconds=1)
+previous=data[(data.timestamp>=prev_start)&(data.timestamp<=prev_end)&(data.building.isin(selected))]
+total=view.energy_kwh.sum()
+
+# Evaluate completeness separately for every selected building.
+calendar = pd.date_range(
+    start=pd.Timestamp(start_date),
+    end=pd.Timestamp(end_date),
+    freq="D"
+)
+
+expected_per_building = 24
+
+daily_counts = (
+    view.assign(
+        day=view.timestamp.dt.floor("D"),
+        hour=view.timestamp.dt.floor("h")
+    )
+    .groupby(["day", "building"])["hour"]
+    .nunique()
+    .unstack(fill_value=0)
+    .reindex(index=calendar, columns=selected, fill_value=0)
+)
+
+daily_energy = (
+    view.assign(day=view.timestamp.dt.floor("D"))
+    .groupby("day")
+    .energy_kwh.sum()
+    .reindex(calendar, fill_value=0)
+)
+
+daily_frame = pd.DataFrame(index=calendar)
+daily_frame.index.name = "timestamp"
+daily_frame["energy_kwh"] = daily_energy
+daily_frame["readings"] = daily_counts.sum(axis=1)
+daily_frame["expected"] = len(selected) * expected_per_building
+daily_frame["complete"] = (
+    daily_counts >= expected_per_building
+).all(axis=1)
+
+period_days = len(calendar)
+complete_days = int(daily_frame["complete"].sum())
+
+avg_daily = daily_frame.loc[
+    daily_frame["complete"], "energy_kwh"
+].mean()
+
+data_coverage = (
+    np.minimum(daily_counts.to_numpy(), expected_per_building).sum()
+    / max(1, period_days * len(selected) * expected_per_building)
+    * 100
+)
+
+peak_row=view.loc[view.demand_kw.idxmax()]
+prev_total=previous.energy_kwh.sum() if not previous.empty else np.nan
+delta=(total-prev_total)/prev_total*100 if pd.notna(prev_total) and prev_total else None
+k1,k2,k3,k4=st.columns(4)
+k1.metric("TOTAL ENERGY",f"{total:,.0f} kWh",f"{delta:+.1f}% vs previous window" if delta is not None else None)
+k2.metric("DAILY AVERAGE", f"{avg_daily:,.0f} kWh" if pd.notna(avg_daily) else "N/A")
+k3.metric("PEAK DEMAND",f"{peak_row.demand_kw:,.1f} kW",f"{peak_row.building}")
+k4.metric("ACTIVE BUILDINGS",f"{view.building.nunique()} / 5",f"{len(view):,} readings")
+st.markdown(f'<div class="mini" style="text-align:right;margin:7px 2px 0">DATASET MODIFIED {file_updated:%d %b %Y · %I:%M %p} &nbsp; / &nbsp; LATEST READING {latest_reading:%d %b %Y · %I:%M %p}</div>',unsafe_allow_html=True)
+st.divider()
+
+# ---------- Main analytical charts ----------
+left,right=st.columns([1.45,1])
+with left:
+    st.markdown('<div class="section-kicker">01 / Consumption trajectory</div>',unsafe_allow_html=True)
+    st.subheader("Energy consumption over time")
+    daily_plot = daily_frame.reset_index()
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=daily_plot["timestamp"],
+        y=daily_plot["energy_kwh"].where(daily_plot["complete"]),
+        mode="lines+markers",
+        connectgaps=False,
+        name="Complete days",
+        line=dict(color="#53d8f2", width=2.6),
+        marker=dict(size=7, color="#53d8f2"),
+        fill="tozeroy",
+        fillcolor="rgba(83,216,242,.12)",
+        customdata=np.column_stack([
+            daily_plot["readings"], daily_plot["expected"]
+        ]),
+        hovertemplate=(
+            "%{x|%d %b}<br><b>%{y:,.0f} kWh</b>"
+            "<br>Readings: %{customdata[0]}/%{customdata[1]}"
+            "<extra></extra>"
+        )
+    ))
+
+    partial_days = daily_plot[
+        (~daily_plot["complete"]) & (daily_plot["readings"] > 0)
+    ]
+
+    if not partial_days.empty:
+        fig.add_trace(go.Scatter(
+            x=partial_days["timestamp"],
+            y=partial_days["energy_kwh"],
+            mode="markers",
+            name="Incomplete day",
+            marker=dict(
+                color="#f6b75e",
+                size=11,
+                symbol="diamond",
+                line=dict(width=1)
+            ),
+            customdata=np.column_stack([
+                partial_days["readings"], partial_days["expected"]
+            ]),
+            hovertemplate=(
+                "%{x|%d %b}<br>Partial total: %{y:,.0f} kWh"
+                "<br>Readings: %{customdata[0]}/%{customdata[1]}"
+                "<extra></extra>"
+            )
+        ))
+
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Energy (kWh)"
+    )
+
+    fig=chart_style(fig,350,True)
+    st.plotly_chart(fig,use_container_width=True)
+
+    st.caption(
+        f"Data completeness: {data_coverage:.1f}% "
+        f"({complete_days}/{period_days} complete days). "
+        "Incomplete days are excluded from the daily average."
+    )
+with right:
+    st.markdown('<div class="section-kicker">02 / Energy mix</div>',unsafe_allow_html=True)
+    st.subheader("Share by building")
+    mix=view.groupby("building",as_index=False).energy_kwh.sum()
+    fig=px.pie(mix,values="energy_kwh",names="building",hole=.68,color_discrete_sequence=COLORS)
+    fig.update_traces(textposition="outside",textinfo="percent",hole=.68,
+                      hovertemplate="<b>%{label}</b><br>%{value:,.0f} kWh · %{percent}<extra></extra>")
+    fig.add_annotation(text=f"<b>{total/1000:.1f}k</b><br><span style='font-size:10px'>kWh total</span>",x=.5,y=.5,showarrow=False,font=dict(size=20,color="#f1f6ff"))
+    fig=chart_style(fig,350,True)
+    fig.update_layout(legend=dict(orientation="h",y=-.12,x=.02,font=dict(size=9)))
+    st.plotly_chart(fig,use_container_width=True)
+
+# ---------- Heatmap ----------
+st.markdown('<div class="section-kicker">03 / Time-of-day behaviour</div>',unsafe_allow_html=True)
+st.subheader("Demand intensity heatmap")
+st.markdown('<div class="subline">Actual hourly readings are retained. Partial and missing days are explicitly identified.</div>',unsafe_allow_html=True)
+
+heat = view.assign(
+    day=view.timestamp.dt.floor("D"),
+    hour=view.timestamp.dt.hour
+)
+
+pivot = heat.pivot_table(
+    index="day",
+    columns="hour",
+    values="demand_kw",
+    aggfunc="mean"
+).reindex(index=calendar, columns=range(24))
+
+day_labels = []
+for day in calendar:
+    complete = bool(daily_frame.loc[day, "complete"])
+    readings = int(daily_frame.loc[day, "readings"])
+
+    if complete:
+        label = day.strftime("%a, %d %b")
+    elif readings > 0:
+        label = "PARTIAL · " + day.strftime("%a, %d %b")
+    else:
+        label = "NO DATA · " + day.strftime("%a, %d %b")
+
+    day_labels.append(label)
+
+fig = go.Figure(data=go.Heatmap(
+    z=pivot.values,
+    x=[f"{h:02d}:00" for h in range(24)],
+    y=day_labels,
+    colorscale=[
+        [0, "#15243b"],
+        [.25, "#245579"],
+        [.55, "#287e9c"],
+        [.78, "#55c9d7"],
+        [1, "#f6b75e"]
+    ],
+    colorbar=dict(title="kW", thickness=12, len=.8),
+    hovertemplate="%{y}<br>%{x}<br><b>%{z:.1f} kW</b><extra></extra>",
+    connectgaps=False
+))
+
+fig = chart_style(fig, max(280, min(480, 30 * len(calendar) + 100)))
+fig.update_layout(
+    xaxis_title="Hour of day",
+    yaxis_title="Date",
+    yaxis=dict(autorange="reversed", gridcolor="rgba(0,0,0,0)")
+)
+st.plotly_chart(fig, use_container_width=True)
+
+st.caption(
+    "PARTIAL = incomplete day with actual observations. "
+    "NO DATA = no observations. Blank heatmap cells indicate missing readings."
+)
+
+# Typical demand profile uses complete days only.
+complete_dates = daily_frame.index[daily_frame["complete"]]
+
+complete_view = view[
+    view.timestamp.dt.floor("D").isin(complete_dates)
+]
+
+st.markdown('<div class="section-kicker">03B / Recurring demand pattern</div>', unsafe_allow_html=True)
+st.subheader("Typical hourly demand")
+st.markdown('<div class="subline">Average demand by hour, calculated exclusively from complete days.</div>', unsafe_allow_html=True)
+
+if not complete_view.empty:
+    hourly_profile = (
+        complete_view.assign(hour=complete_view.timestamp.dt.hour)
+        .groupby("hour").demand_kw.mean()
+        .reindex(range(24))
+    )
+
+    fig = go.Figure(go.Scatter(
+        x=list(range(24)),
+        y=hourly_profile.values,
+        mode="lines+markers",
+        connectgaps=False,
+        line=dict(color="#a78bfa", width=2.8),
+        marker=dict(color="#53d8f2", size=7),
+        hovertemplate="%{x}:00<br><b>%{y:.1f} kW</b><extra></extra>"
+    ))
+
+    fig.update_layout(
+        xaxis_title="Hour of day",
+        yaxis_title="Average demand (kW)"
+    )
+    fig = chart_style(fig, 280)
+    fig.update_xaxes(tickmode="linear", dtick=2)
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("No complete days are available for a recurring hourly demand profile.")
+
+
+# ---------- Treemap and gauge ----------
+c1,c2=st.columns([1.2,1])
+with c1:
+    st.markdown('<div class="section-kicker">04 / Consumption hierarchy</div>',unsafe_allow_html=True)
+    st.subheader("Where energy is concentrated")
+    tree=view.groupby("building",as_index=False).energy_kwh.sum()
+    fig=px.treemap(tree,path=["building"],values="energy_kwh",color="energy_kwh",
+                   color_continuous_scale=["#1c3d5a","#287b9a","#53d8f2","#a78bfa"])
+    fig.update_traces(texttemplate="<b>%{label}</b><br>%{value:,.0f} kWh<br>%{percentRoot:.1%}",hovertemplate="<b>%{label}</b><br>%{value:,.0f} kWh<extra></extra>")
+    fig=chart_style(fig,330)
+    fig.update_layout(coloraxis_showscale=False)
+    st.plotly_chart(fig,use_container_width=True)
+with c2:
+    st.markdown('<div class="section-kicker">05 / Peak load indicator</div>',unsafe_allow_html=True)
+    st.subheader("Peak demand gauge")
+    gauge_max=max(100,float(view.demand_kw.max())*1.25)
+    fig=go.Figure(go.Indicator(
+        mode="gauge+number",value=float(peak_row.demand_kw),
+        number={"suffix":" kW","font":{"size":29,"color":"#f1f6ff","family":"Manrope"}},
+        title={"text":"Highest recorded demand","font":{"size":12,"color":"#aebed2"}},
+        gauge={"axis":{"range":[0,gauge_max],"tickcolor":"#91a2bb"},
+               "bar":{"color":"#53d8f2","thickness":.24},
+               "bgcolor":"rgba(0,0,0,0)","borderwidth":0,
+               "steps":[{"range":[0,gauge_max*.55],"color":"#18354a"},
+                        {"range":[gauge_max*.55,gauge_max*.8],"color":"#55452d"},
+                        {"range":[gauge_max*.8,gauge_max],"color":"#542e45"}],
+               "threshold":{"line":{"color":"#f6b75e","width":3},"thickness":.8,"value":gauge_max*.8}}
+    ))
+    fig=chart_style(fig,330)
+    fig.update_layout(margin=dict(l=30,r=30,t=55,b=10))
+    st.plotly_chart(fig,use_container_width=True)
+    st.markdown(f'<div class="mini">Peak occurred at {peak_row.timestamp:%d %b %Y, %H:%M} in {peak_row.building}.</div>',unsafe_allow_html=True)
+
+# ---------- Distribution scatter ----------
+st.markdown('<div class="section-kicker">06 / Relationship analysis</div>',unsafe_allow_html=True)
+st.subheader("Energy consumed vs. recorded demand")
+st.markdown('<div class="subline">Each point represents one building-hour reading. Explore how energy and demand move together.</div>',unsafe_allow_html=True)
+scatter=view.copy()
+fig=px.scatter(scatter,x="energy_kwh",y="demand_kw",color="building",size="energy_kwh",
+               size_max=11,opacity=.72,color_discrete_sequence=COLORS,
+               hover_data={"timestamp":True,"data_status":True},
+               labels={"energy_kwh":"Energy (kWh)","demand_kw":"Demand (kW)","building":"Building"})
+fig=chart_style(fig,340,True)
+fig.update_layout(legend=dict(orientation="h",y=1.12,x=0))
+st.plotly_chart(fig,use_container_width=True)
+
+# ---------- Insight and anomaly review ----------
+st.divider()
+st.markdown('<div class="section-kicker">07 / Decision support</div>',unsafe_allow_html=True)
+st.subheader("Operational findings")
+totals=view.groupby("building").energy_kwh.sum().sort_values(ascending=False)
+top=totals.index[0]
+share=totals.iloc[0]/total*100
+# Robust baseline by building/hour, with 50% minimum lift to avoid noisy flags.
+baseline=data.copy()
+baseline["hour"]=baseline.timestamp.dt.hour
+stats=baseline.groupby(["building","hour"]).energy_kwh.agg(
+    median="median",mad=lambda x: float(np.median(np.abs(x-np.median(x))))
+).reset_index()
+stats["limit"]=np.maximum(stats["median"]+3*1.4826*stats["mad"],stats["median"]*1.5)
+scan=view.assign(hour=view.timestamp.dt.hour).merge(stats[["building","hour","limit"]],on=["building","hour"],how="left")
+flags=scan[scan.energy_kwh>scan["limit"]].sort_values("energy_kwh",ascending=False)
+st.markdown(f"""
+<div class="finding">
+ <div class="eyebrow">HIGHEST CONSUMPTION SHARE</div>
+ <div style="font-family:Manrope;font-size:1.15rem;font-weight:800;margin:5px 0;color:#f4f8ff">{top} accounts for {share:.1f}% of selected energy use.</div>
+ <div style="color:#aebed2">Facilities staff could review its operating schedule and major electrical loads to understand the higher share. This is a prompt for investigation, not proof of waste.</div>
+</div>
+""",unsafe_allow_html=True)
+with st.expander(f"Unusual readings for review · {len(flags)} flagged",expanded=False):
+    if flags.empty:
+        st.success("No readings crossed the illustrative screening threshold in this selection.")
+    else:
+        st.warning("Statistical flags only. These are not confirmed faults or evidence of energy waste.")
+        st.dataframe(flags[["timestamp","building","energy_kwh","limit","data_status"]].rename(columns={
+            "timestamp":"Timestamp","building":"Building","energy_kwh":"Observed kWh","limit":"Review threshold kWh","data_status":"Record type"
+        }),use_container_width=True,hide_index=True)
+
+# ---------- Live update simulator ----------
+st.divider()
+st.markdown('<div class="section-kicker">08 / Data ingestion demo</div>',unsafe_allow_html=True)
+st.subheader("Add a new simulated meter reading")
+st.markdown('<div class="subline">Insert a new record into the CSV dataset and recalculate every KPI and visualization.</div>',unsafe_allow_html=True)
+with st.expander("Open reading simulator",expanded=False):
+    with st.form("reading_form"):
+        a,b,c=st.columns(3)
+        with a: building=st.selectbox("Building",BUILDINGS)
+        with b: energy=st.number_input("Energy consumed (kWh)",min_value=.1,max_value=10000.,value=75.,step=1.)
+        with c: demand=st.number_input("Demand (kW)",min_value=.1,max_value=10000.,value=82.,step=1.)
+        default=datetime.now().replace(second=0,microsecond=0)
+        reading_date=st.date_input("Reading date",value=default.date())
+        reading_time=st.time_input("Reading time",value=default.time())
+        submit=st.form_submit_button("Save reading and refresh dashboard",type="primary")
+    if submit:
+        timestamp=datetime.combine(reading_date,reading_time)
+        row=pd.DataFrame([{"timestamp":pd.Timestamp(timestamp),"building":building,"energy_kwh":energy,
+                           "demand_kw":demand,"data_status":"Simulated - manually added"}])
+        updated=pd.concat([data,row],ignore_index=True).drop_duplicates(["timestamp","building"],keep="last").sort_values("timestamp")
+        updated.to_csv(DATA_PATH,index=False)
+        st.success("New reading saved. Refreshing all dashboard visuals.")
+        time.sleep(.4)
+        st.rerun()
+
+with st.expander("Inspect selected records"):
+    st.dataframe(view.sort_values("timestamp",ascending=False),use_container_width=True,hide_index=True)
+
+st.caption(
+    "Methodology: energy consumption is the sum of interval readings (kWh). "
+    "A complete day requires 24 distinct hourly slots for every selected building. "
+    "Data coverage counts distinct hourly slots, capped at 24 per building per day. "
+    "The daily average uses complete days only. The heatmap retains actual "
+    "observations and labels partial or missing days. The typical hourly demand "
+    "profile excludes incomplete days. Peak demand is the maximum recorded kW. "
+    "Anomaly screening uses a building-hour median/MAD threshold with a 50% "
+    "minimum lift. All data is synthetic and is not connected to live meters."
+)
